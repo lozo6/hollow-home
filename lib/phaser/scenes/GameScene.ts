@@ -1,3 +1,4 @@
+// lib/phaser/scenes/GameScene.ts
 import { TILE_SIZE } from "../config";
 
 export function createGameScene(Phaser: any) {
@@ -8,58 +9,62 @@ export function createGameScene(Phaser: any) {
     private dayOverlay: any;
     private timeOfDay: number = 0.5;
     private daySpeed: number = 0.0001;
+    private collisionLayer: any;
 
     constructor() {
       super({ key: "GameScene" });
     }
 
+    preload() {
+      this.load.image(
+        "tileset",
+        "/assets/tilemaps/tileset.png"
+      );
+      this.load.tilemapTiledJSON(
+        "map",
+        "/assets/tilemaps/map.json"
+      );
+    }
+
     create() {
-      this.buildPlaceholderWorld();
-      this.createPlayer(Phaser);
+      this.buildWorld();
+      this.createPlayer();
+      this.setupCollision();
       this.createDayNightOverlay();
       this.setupCamera();
       this.setupInput(Phaser);
     }
 
-    private buildPlaceholderWorld() {
-      const graphics = this.add.graphics();
-      const mapWidth = 50;
-      const mapHeight = 50;
+    // --- WORLD ---
 
-      for (let row = 0; row < mapHeight; row++) {
-        for (let col = 0; col < mapWidth; col++) {
-          const x = col * TILE_SIZE;
-          const y = row * TILE_SIZE;
-          const isAlt = (row + col) % 2 === 0;
-          graphics.fillStyle(isAlt ? 0x2d5a27 : 0x2a5224);
-          graphics.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-        }
-      }
+    private buildWorld() {
+      const map = this.make.tilemap({ key: "map" });
+      const tileset = map.addTilesetImage("hollow-home", "tileset");
 
-      const treePositions = [
-        [5, 5], [8, 3], [12, 7], [3, 15], [20, 8],
-        [25, 12], [30, 5], [35, 20], [10, 30], [40, 15],
-      ];
+      // Render layers in order (bottom to top)
+      map.createLayer("ground", tileset, 0, 0);
+      map.createLayer("decoration", tileset, 0, 0);
 
-      treePositions.forEach(([col, row]) => {
-        this.add.rectangle(
-          col * TILE_SIZE + TILE_SIZE / 2,
-          row * TILE_SIZE + TILE_SIZE / 2,
-          TILE_SIZE * 0.4,
-          TILE_SIZE * 0.6,
-          0x5c3d1e
-        );
-        this.add.rectangle(
-          col * TILE_SIZE + TILE_SIZE / 2,
-          row * TILE_SIZE - TILE_SIZE * 0.3,
-          TILE_SIZE * 1.2,
-          TILE_SIZE * 1.2,
-          0x1a4a14
-        );
-      });
+      // Collision layer — we'll make it invisible
+      this.collisionLayer = map.createLayer("collision", tileset, 0, 0);
+      this.collisionLayer.setVisible(false);
+      this.collisionLayer.setCollisionByExclusion([-1]); // All painted tiles block
+
+      // Above layer renders on top of player
+      const aboveLayer = map.createLayer("above", tileset, 0, 0);
+      if (aboveLayer) aboveLayer.setDepth(10);
+
+      // Set world bounds to map size
+      this.physics.world.setBounds(
+        0, 0,
+        map.widthInPixels,
+        map.heightInPixels
+      );
     }
 
-    private createPlayer(Phaser: any) {
+    // --- PLAYER ---
+
+    private createPlayer() {
       const graphics = this.make.graphics({ x: 0, y: 0 });
       graphics.fillStyle(0xf5e6c8);
       graphics.fillRect(0, 0, TILE_SIZE * 0.7, TILE_SIZE * 0.9);
@@ -72,32 +77,49 @@ export function createGameScene(Phaser: any) {
         "player"
       );
       this.player.setCollideWorldBounds(true);
-      this.physics.world.setBounds(0, 0, 50 * TILE_SIZE, 50 * TILE_SIZE);
     }
 
+    // --- COLLISION ---
+
+    private setupCollision() {
+      if (this.collisionLayer) {
+        this.physics.add.collider(this.player, this.collisionLayer);
+      }
+    }
+
+    // --- DAY/NIGHT ---
+
     private createDayNightOverlay() {
-      this.dayOverlay = this.add.rectangle(
-        0, 0,
-        50 * TILE_SIZE,
-        50 * TILE_SIZE,
-        0x00001a,
-        0
-      ).setOrigin(0, 0).setDepth(100);
+      const mapWidth = 50 * TILE_SIZE;
+      const mapHeight = 50 * TILE_SIZE;
+
+      this.dayOverlay = this.add
+        .rectangle(0, 0, mapWidth, mapHeight, 0x00001a, 0)
+        .setOrigin(0, 0)
+        .setDepth(100);
     }
 
     private updateDayNight() {
       this.timeOfDay += this.daySpeed;
       if (this.timeOfDay >= 1) this.timeOfDay = 0;
+
       const distanceFromNoon = Math.abs(this.timeOfDay - 0.5) * 2;
       const alpha = distanceFromNoon * 0.85;
       this.dayOverlay.setAlpha(alpha);
     }
 
+    // --- CAMERA ---
+
     private setupCamera() {
-      this.cameras.main.setBounds(0, 0, 50 * TILE_SIZE, 50 * TILE_SIZE);
+      const mapWidth = 50 * TILE_SIZE;
+      const mapHeight = 50 * TILE_SIZE;
+
+      this.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
       this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
       this.cameras.main.setZoom(1.5);
     }
+
+    // --- INPUT ---
 
     private setupInput(Phaser: any) {
       this.cursors = this.input.keyboard.createCursorKeys();
@@ -128,6 +150,8 @@ export function createGameScene(Phaser: any) {
         body.velocity.normalize().scale(speed);
       }
     }
+
+    // --- MAIN LOOP ---
 
     update() {
       this.handleMovement();

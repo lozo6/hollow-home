@@ -11,6 +11,7 @@ const DEFAULT_STATE: GameState = {
   timeOfDay: 0.5,
   journalCompletion: 0,
   endingsSeen: [],
+  unlockedZones: ["clearing", "shallow_wood"],
   player: {
     x: 0,
     y: 0,

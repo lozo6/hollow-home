@@ -1,3 +1,5 @@
+import { ZoneId } from "@/lib/zones";
+
 export type Season = "spring" | "summer" | "autumn" | "winter";
 
 export type GameStatus = "menu" | "playing" | "cutscene" | "paused";
@@ -19,6 +21,7 @@ export interface GameState {
   journalCompletion: number; // 0–100
   endingsSeen: EndingType[];
   player: Player;
+  unlockedZones: ZoneId[];
 }
 
 export interface JournalEntry {

@@ -1,0 +1,54 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { GAME_WIDTH, GAME_HEIGHT } from "@/lib/phaser/config";
+
+export function GameCanvas() {
+  const gameRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const initPhaser = async () => {
+      if (gameRef.current || !containerRef.current) return;
+
+      // Dynamically import everything Phaser-related here
+      const Phaser = await import("phaser");
+      const { createGameScene } = await import("@/lib/phaser/scenes/GameScene");
+
+      const GameScene = createGameScene(Phaser);
+
+      gameRef.current = new Phaser.Game({
+        type: Phaser.AUTO,
+        width: GAME_WIDTH,
+        height: GAME_HEIGHT,
+        backgroundColor: "#1a1a2e",
+        physics: {
+          default: "arcade",
+          arcade: {
+            gravity: { x: 0, y: 0 },
+            debug: false,
+          },
+        },
+        pixelArt: true,
+        antialias: false,
+        scene: [GameScene],
+        parent: containerRef.current,
+      });
+    };
+
+    initPhaser();
+
+    return () => {
+      gameRef.current?.destroy(true);
+      gameRef.current = null;
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="rounded-xl overflow-hidden shadow-2xl"
+      style={{ width: GAME_WIDTH, height: GAME_HEIGHT }}
+    />
+  );
+}

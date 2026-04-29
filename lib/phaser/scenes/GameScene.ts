@@ -8,7 +8,7 @@ export function createGameScene(Phaser: any) {
     private wasd: any;
     private dayOverlay: any;
     private timeOfDay: number = 0.5;
-    private daySpeed: number = 0.0001;
+    private daySpeed: number = 0.001;
     private collisionLayer: any;
 
     constructor() {
@@ -96,7 +96,8 @@ export function createGameScene(Phaser: any) {
       this.dayOverlay = this.add
         .rectangle(0, 0, mapWidth, mapHeight, 0x00001a, 0)
         .setOrigin(0, 0)
-        .setDepth(100);
+        .setDepth(100)
+        .setScrollFactor(0);
     }
 
     private updateDayNight() {

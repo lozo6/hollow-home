@@ -225,8 +225,17 @@ const mapJson = {
   tileheight: TILE_SIZE,
   tilesets: [
     {
+      columns: 8,
       firstgid: 1,
-      source: "tileset.tsj",
+      image: "../tilemaps/tileset.png",
+      imageheight: 128,
+      imagewidth: 256,
+      margin: 0,
+      name: "hollow-home",
+      spacing: 0,
+      tilecount: 32,
+      tileheight: TILE_SIZE,
+      tilewidth: TILE_SIZE,
     },
   ],
   tilewidth: TILE_SIZE,

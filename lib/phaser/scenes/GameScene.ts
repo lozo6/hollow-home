@@ -249,7 +249,7 @@ export function createGameScene(Phaser: any) {
         yoyo: true,
       });
 
-      console.log(`Gathered ${node.type}! Remaining: ${node.quantity}`);
+      this.events.emit("gathered", { type: node.type, amount: 1 });
     }
 
     // --- MAIN LOOP ---

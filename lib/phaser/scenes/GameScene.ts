@@ -10,20 +10,19 @@ export function createGameScene(Phaser: any) {
     private timeOfDay: number = 0.5;
     private daySpeed: number = 0.001;
     private collisionLayer: any;
+    private nodeMarkers: Phaser.GameObjects.Rectangle[] = [];
+    private interactKey!: any;
+    private nearbyNodeIndex: number = -1;
+    private promptText!: Phaser.GameObjects.Text;
+    private nodes: any[] = [];
 
     constructor() {
       super({ key: "GameScene" });
     }
 
     preload() {
-      this.load.image(
-        "tileset",
-        "/assets/tilemaps/tileset.png"
-      );
-      this.load.tilemapTiledJSON(
-        "map",
-        "/assets/tilemaps/map.json"
-      );
+      this.load.image("tileset", "/assets/tilemaps/tileset.png");
+      this.load.tilemapTiledJSON("map", "/assets/tilemaps/map.json");
     }
 
     create() {
@@ -33,6 +32,8 @@ export function createGameScene(Phaser: any) {
       this.createDayNightOverlay();
       this.setupCamera();
       this.setupInput(Phaser);
+      this.setupNodes();
+      this.setupInteraction(Phaser);
     }
 
     // --- WORLD ---
@@ -55,11 +56,7 @@ export function createGameScene(Phaser: any) {
       if (aboveLayer) aboveLayer.setDepth(10);
 
       // Set world bounds to map size
-      this.physics.world.setBounds(
-        0, 0,
-        map.widthInPixels,
-        map.heightInPixels
-      );
+      this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     }
 
     // --- PLAYER ---
@@ -74,7 +71,7 @@ export function createGameScene(Phaser: any) {
       this.player = this.physics.add.sprite(
         25 * TILE_SIZE,
         25 * TILE_SIZE,
-        "player"
+        "player",
       );
       this.player.setCollideWorldBounds(true);
     }
@@ -151,12 +148,117 @@ export function createGameScene(Phaser: any) {
         body.velocity.normalize().scale(speed);
       }
     }
+    private setupNodes() {
+      // Import node data — we'll pass it in via the scene's init data
+      // For now use the default node positions directly
+      const { createNodes, RESOURCE_INFO } = require("../../../lib/gathering");
+      this.nodes = createNodes();
+
+      this.nodes.forEach((node: any) => {
+        const x = node.col * TILE_SIZE + TILE_SIZE / 2;
+        const y = node.row * TILE_SIZE + TILE_SIZE / 2;
+        const info = RESOURCE_INFO[node.type];
+
+        // Glowing marker rectangle
+        const marker = this.add.rectangle(
+          x,
+          y,
+          TILE_SIZE * 0.6,
+          TILE_SIZE * 0.6,
+          info.color,
+          0.7,
+        );
+        marker.setDepth(5);
+        this.nodeMarkers.push(marker);
+      });
+
+      // Interaction prompt text
+      this.promptText = this.add
+        .text(0, 0, "Press E to gather", {
+          fontSize: "10px",
+          color: "#ffffff",
+          backgroundColor: "#000000",
+          padding: { x: 4, y: 2 },
+        })
+        .setDepth(200)
+        .setScrollFactor(0)
+        .setVisible(false);
+    }
+
+    private setupInteraction(Phaser: any) {
+      this.interactKey = this.input.keyboard.addKey(
+        Phaser.Input.Keyboard.KeyCodes.E,
+      );
+    }
+
+    private checkNodeProximity() {
+      const playerX = this.player.x;
+      const playerY = this.player.y;
+      const interactRange = TILE_SIZE * 1.5;
+
+      this.nearbyNodeIndex = -1;
+
+      this.nodes.forEach((node: any, index: number) => {
+        if (node.depleted) return;
+
+        const nodeX = node.col * TILE_SIZE + TILE_SIZE / 2;
+        const nodeY = node.row * TILE_SIZE + TILE_SIZE / 2;
+        const dist = Phaser.Math.Distance.Between(
+          playerX,
+          playerY,
+          nodeX,
+          nodeY,
+        );
+
+        if (dist < interactRange) {
+          this.nearbyNodeIndex = index;
+        }
+      });
+
+      // Show/hide prompt
+      if (this.nearbyNodeIndex >= 0) {
+        this.promptText.setVisible(true);
+        this.promptText.setPosition(
+          this.scale.width / 2 - this.promptText.width / 2,
+          this.scale.height - 80,
+        );
+      } else {
+        this.promptText.setVisible(false);
+      }
+    }
+
+    private handleGathering() {
+      if (this.nearbyNodeIndex < 0) return;
+      if (!Phaser.Input.Keyboard.JustDown(this.interactKey)) return;
+
+      const node = this.nodes[this.nearbyNodeIndex];
+      if (node.depleted) return;
+
+      // Deplete one from the node
+      node.quantity -= 1;
+      if (node.quantity <= 0) {
+        node.depleted = true;
+        this.nodeMarkers[this.nearbyNodeIndex].setVisible(false);
+      }
+
+      // Flash the marker
+      this.tweens.add({
+        targets: this.nodeMarkers[this.nearbyNodeIndex],
+        alpha: 0,
+        duration: 100,
+        yoyo: true,
+      });
+
+      console.log(`Gathered ${node.type}! Remaining: ${node.quantity}`);
+    }
 
     // --- MAIN LOOP ---
 
     update() {
       this.handleMovement();
       this.updateDayNight();
+      this.checkNodeProximity();
+      this.handleGathering();
     }
   };
 }

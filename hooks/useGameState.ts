@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import type { GameState, JournalEntry } from "@/types/game";
 import { saveGame, loadGame } from "@/lib/save";
+import { createNodes } from "@/lib/gathering";
 
 const DEFAULT_STATE: GameState = {
   status: "menu",
@@ -12,6 +13,7 @@ const DEFAULT_STATE: GameState = {
   journalCompletion: 0,
   endingsSeen: [],
   unlockedZones: ["clearing", "shallow_wood"],
+  nodes: createNodes(),
   player: {
     x: 0,
     y: 0,

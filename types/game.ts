@@ -6,6 +6,8 @@ export type GameStatus = "menu" | "playing" | "cutscene" | "paused";
 
 export type EndingType = "cycle" | "knowing" | "leaving";
 
+export type ResourceType = "wood" | "stone" | "berry" | "fibre" | "mushroom";
+
 export interface Player {
   x: number;
   y: number;
@@ -22,6 +24,8 @@ export interface GameState {
   endingsSeen: EndingType[];
   player: Player;
   unlockedZones: ZoneId[];
+  nodes: GatheringNode[];
+
 }
 
 export interface JournalEntry {
@@ -37,4 +41,14 @@ export interface SaveData {
   gameState: GameState;
   journal: JournalEntry[];
   lastSaved: string; // ISO date string
+}
+
+export interface GatheringNode {
+  id: string;
+  type: ResourceType;
+  quantity: number;
+  maxQuantity: number;
+  col: number;
+  row: number;
+  depleted: boolean;
 }

@@ -18,6 +18,11 @@ export function createGameScene(Phaser: any) {
     private workbenchCol: number = 25;
     private workbenchRow: number = 23;
     private nearWorkbench: boolean = false;
+    private structureMarkers: Map<string, Phaser.GameObjects.Container> =
+      new Map();
+    private nearHomestead: boolean = false;
+    private homesteadCol: number = 24;
+    private homesteadRow: number = 26;
 
     constructor() {
       super({ key: "GameScene" });
@@ -310,6 +315,60 @@ export function createGameScene(Phaser: any) {
       }
     }
 
+    private setupHomestead() {
+      // Homestead sign marker — walk up and press E to open
+      const sign = this.add
+        .rectangle(
+          this.homesteadCol * TILE_SIZE + TILE_SIZE / 2,
+          this.homesteadRow * TILE_SIZE + TILE_SIZE / 2,
+          TILE_SIZE,
+          TILE_SIZE,
+          0x8b7355,
+          0.9,
+        )
+        .setDepth(5);
+
+      this.add
+        .text(
+          this.homesteadCol * TILE_SIZE + TILE_SIZE / 2,
+          this.homesteadRow * TILE_SIZE - 4,
+          "🏚️",
+          { fontSize: "16px" },
+        )
+        .setOrigin(0.5, 1)
+        .setDepth(6);
+    }
+
+    private checkHomesteadProximity() {
+      const playerX = this.player.x;
+      const playerY = this.player.y;
+      const hsX = this.homesteadCol * TILE_SIZE + TILE_SIZE / 2;
+      const hsY = this.homesteadRow * TILE_SIZE + TILE_SIZE / 2;
+      const dist = Phaser.Math.Distance.Between(playerX, playerY, hsX, hsY);
+
+      this.nearHomestead = dist < TILE_SIZE * 1.5;
+
+      if (
+        this.nearHomestead &&
+        this.nearbyNodeIndex < 0 &&
+        !this.nearWorkbench
+      ) {
+        this.promptText.setVisible(true);
+        this.promptText.setText("Press E to restore homestead");
+        this.promptText.setPosition(
+          this.scale.width / 2 - this.promptText.width / 2,
+          this.scale.height - 80,
+        );
+      }
+
+      if (
+        this.nearHomestead &&
+        Phaser.Input.Keyboard.JustDown(this.interactKey)
+      ) {
+        this.game.events.emit("openHomestead");
+      }
+    }
+
     // --- MAIN LOOP ---
 
     update() {
@@ -317,6 +376,7 @@ export function createGameScene(Phaser: any) {
       this.updateDayNight();
       this.checkNodeProximity();
       this.checkWorkbenchProximity();
+      this.checkHomesteadProximity();
       this.handleGathering();
     }
   };

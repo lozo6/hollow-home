@@ -51,12 +51,16 @@ export function GameCanvas({ onGather, onGameEvent }: Props) {
         "gathered",
         ({ type, amount }: { type: ResourceType; amount: number }) => {
           onGatherRef.current(type, amount);
-        }
+        },
       );
 
       // Listen for other game events
       gameRef.current.events.on("openCrafting", () => {
         onGameEventRef.current("openCrafting");
+      });
+
+      gameRef.current.events.on("openHomestead", () => {
+        onGameEventRef.current("openHomestead");
       });
     };
 

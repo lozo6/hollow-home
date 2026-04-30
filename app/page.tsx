@@ -4,14 +4,24 @@ import { useState, useCallback } from "react";
 import { GameCanvas } from "@/components/game/GameCanvas";
 import { Inventory, type InventoryItem } from "@/components/game/Inventory";
 import { CraftingTable } from "@/components/game/CraftingTable";
+import { Homestead } from "@/components/game/Homestead";
 import { RESOURCE_INFO } from "@/lib/gathering";
 import { craftItem, type Recipe } from "@/lib/crafting";
-import type { ResourceType } from "@/types/game";
+import {
+  createDefaultStructures,
+  spendMaterials,
+  type StructureDefinition,
+} from "@/lib/structures";
+import type { ResourceType, Structure } from "@/types/game";
 
 export default function HomePage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [hotbar, setHotbar] = useState<(InventoryItem | null)[]>(Array(6).fill(null));
   const [craftingOpen, setCraftingOpen] = useState(false);
+  const [homesteadOpen, setHomesteadOpen] = useState(false);
+  const [structures, setStructures] = useState<Structure[]>(
+    createDefaultStructures()
+  );
 
   const handleGather = useCallback((type: ResourceType, amount: number) => {
     const info = RESOURCE_INFO[type];
@@ -24,19 +34,34 @@ export default function HomePage() {
             : item
         );
       }
-      return [...prev, {
-        id: type,
-        name: info.name,
-        quantity: amount,
-        icon: info.icon,
-        category: "material" as const,
-      }];
+      return [
+        ...prev,
+        {
+          id: type,
+          name: info.name,
+          quantity: amount,
+          icon: info.icon,
+          category: "material" as const,
+        },
+      ];
     });
   }, []);
 
   const handleCraft = useCallback((recipe: Recipe) => {
     setItems((prev) => craftItem(recipe, prev));
   }, []);
+
+  const handleBuild = useCallback(
+    (def: StructureDefinition) => {
+      // Deduct materials
+      setItems((prev) => spendMaterials(def, prev));
+      // Mark structure as built
+      setStructures((prev) =>
+        prev.map((s) => (s.id === def.id ? { ...s, built: true } : s))
+      );
+    },
+    []
+  );
 
   const handleHotbarAssign = (item: InventoryItem, slot: number) => {
     setHotbar((prev) => {
@@ -48,6 +73,7 @@ export default function HomePage() {
 
   const handleGameEvent = useCallback((event: string) => {
     if (event === "openCrafting") setCraftingOpen(true);
+    if (event === "openHomestead") setHomesteadOpen(true);
   }, []);
 
   return (
@@ -67,6 +93,13 @@ export default function HomePage() {
           onClose={() => setCraftingOpen(false)}
           inventory={items}
           onCraft={handleCraft}
+        />
+        <Homestead
+          isOpen={homesteadOpen}
+          onClose={() => setHomesteadOpen(false)}
+          structures={structures}
+          inventory={items}
+          onBuild={handleBuild}
         />
       </div>
     </main>

@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import type { GameState, JournalEntry } from "@/types/game";
 import { saveGame, loadGame } from "@/lib/save";
 import { createNodes } from "@/lib/gathering";
+import { createDefaultStructures } from "@/lib/structures";
 
 const DEFAULT_STATE: GameState = {
   status: "menu",
@@ -14,6 +15,7 @@ const DEFAULT_STATE: GameState = {
   endingsSeen: [],
   unlockedZones: ["clearing", "shallow_wood"],
   nodes: createNodes(),
+  structures: createDefaultStructures(),
   player: {
     x: 0,
     y: 0,

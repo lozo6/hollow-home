@@ -8,6 +8,8 @@ export type EndingType = "cycle" | "knowing" | "leaving";
 
 export type ResourceType = "wood" | "stone" | "berry" | "fibre" | "mushroom";
 
+export type StructureId = "bed" | "storage_chest" | "garden_plot";
+
 export interface Player {
   x: number;
   y: number;
@@ -19,13 +21,13 @@ export interface GameState {
   status: GameStatus;
   day: number;
   season: Season;
-  timeOfDay: number;        // 0–1, where 0 = midnight, 0.5 = noon
+  timeOfDay: number; // 0–1, where 0 = midnight, 0.5 = noon
   journalCompletion: number; // 0–100
   endingsSeen: EndingType[];
   player: Player;
   unlockedZones: ZoneId[];
   nodes: GatheringNode[];
-
+  structures: Structure[];
 }
 
 export interface JournalEntry {
@@ -51,4 +53,13 @@ export interface GatheringNode {
   col: number;
   row: number;
   depleted: boolean;
+}
+
+export interface Structure {
+  id: StructureId;
+  name: string;
+  icon: string;
+  built: boolean;
+  col: number;
+  row: number;
 }

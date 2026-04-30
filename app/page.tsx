@@ -16,52 +16,96 @@ import type { ResourceType, Structure } from "@/types/game";
 
 export default function HomePage() {
   const [items, setItems] = useState<InventoryItem[]>([]);
-  const [hotbar, setHotbar] = useState<(InventoryItem | null)[]>(Array(6).fill(null));
+  const [hotbar, setHotbar] = useState<(InventoryItem | null)[]>(
+    Array(6).fill(null),
+  );
   const [craftingOpen, setCraftingOpen] = useState(false);
   const [homesteadOpen, setHomesteadOpen] = useState(false);
   const [structures, setStructures] = useState<Structure[]>(
-    createDefaultStructures()
+    createDefaultStructures(),
   );
 
   const handleGather = useCallback((type: ResourceType, amount: number) => {
     const info = RESOURCE_INFO[type];
     setItems((prev) => {
-      const existing = prev.find((item) => item.id === type);
-      if (existing) {
-        return prev.map((item) =>
-          item.id === type
-            ? { ...item, quantity: item.quantity + amount }
-            : item
-        );
-      }
-      return [
-        ...prev,
-        {
-          id: type,
-          name: info.name,
-          quantity: amount,
-          icon: info.icon,
-          category: "material" as const,
-        },
-      ];
+      const updated = (() => {
+        const existing = prev.find((item) => item.id === type);
+        if (existing) {
+          return prev.map((item) =>
+            item.id === type
+              ? { ...item, quantity: item.quantity + amount }
+              : item,
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: type,
+            name: info.name,
+            quantity: amount,
+            icon: info.icon,
+            category: "material" as const,
+          },
+        ];
+      })();
+
+      // Sync hotbar quantities
+      setHotbar((prevHotbar) =>
+        prevHotbar.map((slot) =>
+          slot && slot.id === type
+            ? {
+                ...slot,
+                quantity:
+                  updated.find((i) => i.id === type)?.quantity ?? slot.quantity,
+              }
+            : slot,
+        ),
+      );
+
+      return updated;
     });
   }, []);
 
   const handleCraft = useCallback((recipe: Recipe) => {
-    setItems((prev) => craftItem(recipe, prev));
+    setItems((prev) => {
+      const updated = craftItem(recipe, prev);
+
+      // Sync hotbar
+      setHotbar((prevHotbar) =>
+        prevHotbar.map((slot) => {
+          if (!slot) return slot;
+          const updatedItem = updated.find((i) => i.id === slot.id);
+          return updatedItem
+            ? { ...slot, quantity: updatedItem.quantity }
+            : null;
+        }),
+      );
+
+      return updated;
+    });
   }, []);
 
-  const handleBuild = useCallback(
-    (def: StructureDefinition) => {
-      // Deduct materials
-      setItems((prev) => spendMaterials(def, prev));
-      // Mark structure as built
-      setStructures((prev) =>
-        prev.map((s) => (s.id === def.id ? { ...s, built: true } : s))
+  const handleBuild = useCallback((def: StructureDefinition) => {
+    setItems((prev) => {
+      const updated = spendMaterials(def, prev);
+
+      // Sync hotbar
+      setHotbar((prevHotbar) =>
+        prevHotbar.map((slot) => {
+          if (!slot) return slot;
+          const updatedItem = updated.find((i) => i.id === slot.id);
+          return updatedItem
+            ? { ...slot, quantity: updatedItem.quantity }
+            : null;
+        }),
       );
-    },
-    []
-  );
+
+      return updated;
+    });
+    setStructures((prev) =>
+      prev.map((s) => (s.id === def.id ? { ...s, built: true } : s)),
+    );
+  }, []);
 
   const handleHotbarAssign = (item: InventoryItem, slot: number) => {
     setHotbar((prev) => {

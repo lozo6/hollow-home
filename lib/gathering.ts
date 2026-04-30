@@ -4,7 +4,7 @@ import type { GatheringNode, ResourceType } from "@/types/game";
 // Fixed node positions on the map
 // These match up with decoration tiles we placed
 const NODE_DEFINITIONS: Omit<GatheringNode, "id" | "depleted">[] = [
-  // Wood nodes — near trees
+  // Wood nodes
   { type: "wood", quantity: 5, maxQuantity: 5, col: 8, row: 8 },
   { type: "wood", quantity: 5, maxQuantity: 5, col: 12, row: 10 },
   { type: "wood", quantity: 5, maxQuantity: 5, col: 6, row: 15 },
@@ -12,11 +12,22 @@ const NODE_DEFINITIONS: Omit<GatheringNode, "id" | "depleted">[] = [
   { type: "wood", quantity: 5, maxQuantity: 5, col: 42, row: 11 },
   { type: "wood", quantity: 5, maxQuantity: 5, col: 8, row: 38 },
   { type: "wood", quantity: 5, maxQuantity: 5, col: 40, row: 38 },
+  { type: "wood", quantity: 5, maxQuantity: 5, col: 15, row: 7 },
+  { type: "wood", quantity: 5, maxQuantity: 5, col: 10, row: 18 },
+  { type: "wood", quantity: 5, maxQuantity: 5, col: 44, row: 6 },
+  { type: "wood", quantity: 5, maxQuantity: 5, col: 36, row: 7 },
+  { type: "wood", quantity: 5, maxQuantity: 5, col: 7, row: 20 },
+  { type: "wood", quantity: 5, maxQuantity: 5, col: 45, row: 15 },
+  { type: "wood", quantity: 5, maxQuantity: 5, col: 11, row: 42 },
+  { type: "wood", quantity: 5, maxQuantity: 5, col: 43, row: 42 },
 
-  // Stone nodes — near stone tiles
+  // Stone nodes
   { type: "stone", quantity: 3, maxQuantity: 3, col: 20, row: 24 },
   { type: "stone", quantity: 3, maxQuantity: 3, col: 28, row: 24 },
   { type: "stone", quantity: 3, maxQuantity: 3, col: 24, row: 20 },
+  { type: "stone", quantity: 3, maxQuantity: 3, col: 22, row: 26 },
+  { type: "stone", quantity: 3, maxQuantity: 3, col: 30, row: 26 },
+  { type: "stone", quantity: 3, maxQuantity: 3, col: 26, row: 30 },
 
   // Berry nodes — scattered
   { type: "berry", quantity: 4, maxQuantity: 4, col: 10, row: 12 },
@@ -35,12 +46,15 @@ const NODE_DEFINITIONS: Omit<GatheringNode, "id" | "depleted">[] = [
 ];
 
 // Resource display info
-export const RESOURCE_INFO: Record<ResourceType, { icon: string; name: string; color: number }> = {
-  wood:     { icon: "🪵", name: "Wood",     color: 0x8B6914 },
-  stone:    { icon: "🪨", name: "Stone",    color: 0x8B8B7A },
-  berry:    { icon: "🫐", name: "Berry",    color: 0x6B3FA0 },
-  fibre:    { icon: "🌿", name: "Fibre",    color: 0x4a7a3a },
-  mushroom: { icon: "🍄", name: "Mushroom", color: 0xB5451B },
+export const RESOURCE_INFO: Record<
+  ResourceType,
+  { icon: string; name: string; color: number }
+> = {
+  wood: { icon: "🪵", name: "Wood", color: 0x8b6914 },
+  stone: { icon: "🪨", name: "Stone", color: 0x8b8b7a },
+  berry: { icon: "🫐", name: "Berry", color: 0x6b3fa0 },
+  fibre: { icon: "🌿", name: "Fibre", color: 0x4a7a3a },
+  mushroom: { icon: "🍄", name: "Mushroom", color: 0xb5451b },
 };
 
 export function createNodes(): GatheringNode[] {
@@ -53,7 +67,7 @@ export function createNodes(): GatheringNode[] {
 
 export function gatherFromNode(
   node: GatheringNode,
-  amount: number = 1
+  amount: number = 1,
 ): { node: GatheringNode; gathered: number } {
   if (node.depleted) return { node, gathered: 0 };
 

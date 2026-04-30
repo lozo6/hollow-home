@@ -10,7 +10,7 @@ export function createGameScene(Phaser: any) {
     private timeOfDay: number = 0.5;
     private daySpeed: number = 0.001;
     private collisionLayer: any;
-    private nodeMarkers: Phaser.GameObjects.Rectangle[] = [];
+    private nodeMarkers: any[] = [];
     private interactKey!: any;
     private nearbyNodeIndex: number = -1;
     private promptText!: Phaser.GameObjects.Text;
@@ -18,8 +18,7 @@ export function createGameScene(Phaser: any) {
     private workbenchCol: number = 25;
     private workbenchRow: number = 23;
     private nearWorkbench: boolean = false;
-    private structureMarkers: Map<string, Phaser.GameObjects.Container> =
-      new Map();
+    private structureMarkers: Map<string, any> = new Map();
     private nearHomestead: boolean = false;
     private homesteadCol: number = 24;
     private homesteadRow: number = 26;
@@ -42,6 +41,7 @@ export function createGameScene(Phaser: any) {
       this.setupInput(Phaser);
       this.setupNodes();
       this.setupInteraction(Phaser);
+      this.setupHomestead();
     }
 
     // --- WORLD ---
@@ -50,20 +50,16 @@ export function createGameScene(Phaser: any) {
       const map = this.make.tilemap({ key: "map" });
       const tileset = map.addTilesetImage("hollow-home", "tileset");
 
-      // Render layers in order (bottom to top)
       map.createLayer("ground", tileset, 0, 0);
       map.createLayer("decoration", tileset, 0, 0);
 
-      // Collision layer — we'll make it invisible
       this.collisionLayer = map.createLayer("collision", tileset, 0, 0);
       this.collisionLayer.setVisible(false);
-      this.collisionLayer.setCollisionByExclusion([-1]); // All painted tiles block
+      this.collisionLayer.setCollisionByExclusion([-1]);
 
-      // Above layer renders on top of player
       const aboveLayer = map.createLayer("above", tileset, 0, 0);
       if (aboveLayer) aboveLayer.setDepth(10);
 
-      // Set world bounds to map size
       this.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
     }
 
@@ -95,11 +91,8 @@ export function createGameScene(Phaser: any) {
     // --- DAY/NIGHT ---
 
     private createDayNightOverlay() {
-      const mapWidth = 50 * TILE_SIZE;
-      const mapHeight = 50 * TILE_SIZE;
-
       this.dayOverlay = this.add
-        .rectangle(0, 0, mapWidth, mapHeight, 0x00001a, 0)
+        .rectangle(0, 0, this.scale.width, this.scale.height, 0x00001a, 0)
         .setOrigin(0, 0)
         .setDepth(100)
         .setScrollFactor(0);
@@ -156,9 +149,10 @@ export function createGameScene(Phaser: any) {
         body.velocity.normalize().scale(speed);
       }
     }
+
+    // --- NODES ---
+
     private setupNodes() {
-      // Import node data — we'll pass it in via the scene's init data
-      // For now use the default node positions directly
       const { createNodes, RESOURCE_INFO } = require("../../../lib/gathering");
       this.nodes = createNodes();
 
@@ -167,20 +161,36 @@ export function createGameScene(Phaser: any) {
         const y = node.row * TILE_SIZE + TILE_SIZE / 2;
         const info = RESOURCE_INFO[node.type];
 
-        // Glowing marker rectangle
-        const marker = this.add.rectangle(
-          x,
-          y,
-          TILE_SIZE * 0.6,
-          TILE_SIZE * 0.6,
-          info.color,
-          0.7,
-        );
+        // Outer glow ring
+        const glow = this.add.circle(x, y, TILE_SIZE * 0.55, info.color, 0.3);
+        glow.setDepth(4);
+
+        // Inner marker circle
+        const marker = this.add.circle(x, y, TILE_SIZE * 0.3, info.color, 0.9);
         marker.setDepth(5);
-        this.nodeMarkers.push(marker);
+
+        // Emoji icon above marker
+        const icon =
+          node.type === "wood"
+            ? "🪵"
+            : node.type === "stone"
+              ? "🪨"
+              : node.type === "berry"
+                ? "🫐"
+                : node.type === "fibre"
+                  ? "🌿"
+                  : "🍄";
+
+        this.add
+          .text(x, y - TILE_SIZE * 0.7, icon, { fontSize: "12px" })
+          .setOrigin(0.5)
+          .setDepth(6);
+
+        // Store the inner marker for depletion hiding
+        this.nodeMarkers.push({ marker, glow });
       });
 
-      // Interaction prompt text
+      // Prompt text
       this.promptText = this.add
         .text(0, 0, "Press E to gather", {
           fontSize: "10px",
@@ -192,8 +202,8 @@ export function createGameScene(Phaser: any) {
         .setScrollFactor(0)
         .setVisible(false);
 
-      // Workbench marker at center of homestead
-      const workbench = this.add
+      // Workbench marker
+      this.add
         .rectangle(
           25 * TILE_SIZE + TILE_SIZE / 2,
           23 * TILE_SIZE + TILE_SIZE / 2,
@@ -204,7 +214,6 @@ export function createGameScene(Phaser: any) {
         )
         .setDepth(5);
 
-      // Label
       this.add
         .text(25 * TILE_SIZE + TILE_SIZE / 2, 23 * TILE_SIZE - 4, "⚒️", {
           fontSize: "16px",
@@ -212,7 +221,6 @@ export function createGameScene(Phaser: any) {
         .setOrigin(0.5, 1)
         .setDepth(6);
 
-      // Store workbench position for proximity check
       this.workbenchCol = 25;
       this.workbenchRow = 23;
     }
@@ -247,7 +255,6 @@ export function createGameScene(Phaser: any) {
         }
       });
 
-      // Show/hide prompt
       if (this.nearbyNodeIndex >= 0) {
         this.promptText.setVisible(true);
         this.promptText.setPosition(
@@ -266,16 +273,16 @@ export function createGameScene(Phaser: any) {
       const node = this.nodes[this.nearbyNodeIndex];
       if (node.depleted) return;
 
-      // Deplete one from the node
       node.quantity -= 1;
       if (node.quantity <= 0) {
         node.depleted = true;
-        this.nodeMarkers[this.nearbyNodeIndex].setVisible(false);
+        this.nodeMarkers[this.nearbyNodeIndex].marker.setVisible(false);
+        this.nodeMarkers[this.nearbyNodeIndex].glow.setVisible(false);
       }
 
-      // Flash the marker
+      // Flash effect
       this.tweens.add({
-        targets: this.nodeMarkers[this.nearbyNodeIndex],
+        targets: this.nodeMarkers[this.nearbyNodeIndex].marker,
         alpha: 0,
         duration: 100,
         yoyo: true,
@@ -315,9 +322,10 @@ export function createGameScene(Phaser: any) {
       }
     }
 
+    // --- HOMESTEAD ---
+
     private setupHomestead() {
-      // Homestead sign marker — walk up and press E to open
-      const sign = this.add
+      this.add
         .rectangle(
           this.homesteadCol * TILE_SIZE + TILE_SIZE / 2,
           this.homesteadRow * TILE_SIZE + TILE_SIZE / 2,

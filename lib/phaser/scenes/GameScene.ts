@@ -249,7 +249,7 @@ export function createGameScene(Phaser: any) {
         yoyo: true,
       });
 
-      this.events.emit("gathered", { type: node.type, amount: 1 });
+      this.game.events.emit("gathered", { type: node.type, amount: 1 });
     }
 
     // --- MAIN LOOP ---

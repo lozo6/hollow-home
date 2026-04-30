@@ -1,23 +1,46 @@
 // app/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { GameCanvas } from "@/components/game/GameCanvas";
 import { Inventory, type InventoryItem } from "@/components/game/Inventory";
+import { RESOURCE_INFO } from "@/lib/gathering";
+import type { ResourceType } from "@/types/game";
 
-// Placeholder items so we can see the UI working
-const PLACEHOLDER_ITEMS: InventoryItem[] = [
-  { id: "wood", name: "Wood", quantity: 12, icon: "🪵", category: "material" },
-  { id: "stone", name: "Stone", quantity: 5, icon: "🪨", category: "material" },
-  { id: "berry", name: "Wild Berry", quantity: 8, icon: "🫐", category: "food" },
-  { id: "seed", name: "Grass Seed", quantity: 3, icon: "🌱", category: "seed" },
-];
+const INITIAL_ITEMS: InventoryItem[] = [];
 
 export default function HomePage() {
-  const [items] = useState<InventoryItem[]>(PLACEHOLDER_ITEMS);
+  const [items, setItems] = useState<InventoryItem[]>(INITIAL_ITEMS);
   const [hotbar, setHotbar] = useState<(InventoryItem | null)[]>(
     Array(6).fill(null)
   );
+
+  const handleGather = useCallback((type: ResourceType, amount: number) => {
+    const info = RESOURCE_INFO[type];
+
+    setItems((prev) => {
+      const existing = prev.find((item) => item.id === type);
+
+      if (existing) {
+        // Increase quantity of existing item
+        return prev.map((item) =>
+          item.id === type
+            ? { ...item, quantity: item.quantity + amount }
+            : item
+        );
+      } else {
+        // Add new item to inventory
+        const newItem: InventoryItem = {
+          id: type,
+          name: info.name,
+          quantity: amount,
+          icon: info.icon,
+          category: "material",
+        };
+        return [...prev, newItem];
+      }
+    });
+  }, []);
 
   const handleHotbarAssign = (item: InventoryItem, slot: number) => {
     setHotbar((prev) => {
@@ -33,7 +56,7 @@ export default function HomePage() {
         Hollow Home
       </h1>
       <div className="relative">
-        <GameCanvas />
+        <GameCanvas onGather={handleGather} />
         <Inventory
           items={items}
           hotbar={hotbar}

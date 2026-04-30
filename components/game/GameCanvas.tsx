@@ -2,16 +2,26 @@
 
 import { useEffect, useRef } from "react";
 import { GAME_WIDTH, GAME_HEIGHT } from "@/lib/phaser/config";
+import type { ResourceType } from "@/types/game";
 
-export function GameCanvas() {
+interface Props {
+  onGather: (type: ResourceType, amount: number) => void;
+}
+
+export function GameCanvas({ onGather }: Props) {
   const gameRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const onGatherRef = useRef(onGather);
+
+  // Keep ref up to date without re-creating the game
+  useEffect(() => {
+    onGatherRef.current = onGather;
+  }, [onGather]);
 
   useEffect(() => {
     const initPhaser = async () => {
       if (gameRef.current || !containerRef.current) return;
 
-      // Dynamically import everything Phaser-related here
       const Phaser = await import("phaser");
       const { createGameScene } = await import("@/lib/phaser/scenes/GameScene");
 
@@ -24,15 +34,17 @@ export function GameCanvas() {
         backgroundColor: "#1a1a2e",
         physics: {
           default: "arcade",
-          arcade: {
-            gravity: { x: 0, y: 0 },
-            debug: false,
-          },
+          arcade: { gravity: { x: 0, y: 0 }, debug: false },
         },
         pixelArt: true,
         antialias: false,
         scene: [GameScene],
         parent: containerRef.current,
+      });
+
+      // Listen for gather events from Phaser
+      gameRef.current.events.on("gathered", ({ type, amount }: { type: ResourceType; amount: number }) => {
+        onGatherRef.current(type, amount);
       });
     };
 

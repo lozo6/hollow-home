@@ -1,3 +1,4 @@
+// components/game/GameCanvas.tsx
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -6,17 +7,20 @@ import type { ResourceType } from "@/types/game";
 
 interface Props {
   onGather: (type: ResourceType, amount: number) => void;
+  onGameEvent: (event: string) => void;
 }
 
-export function GameCanvas({ onGather }: Props) {
+export function GameCanvas({ onGather, onGameEvent }: Props) {
   const gameRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const onGatherRef = useRef(onGather);
+  const onGameEventRef = useRef(onGameEvent);
 
-  // Keep ref up to date without re-creating the game
+  // Keep refs up to date without re-creating the game
   useEffect(() => {
     onGatherRef.current = onGather;
-  }, [onGather]);
+    onGameEventRef.current = onGameEvent;
+  }, [onGather, onGameEvent]);
 
   useEffect(() => {
     const initPhaser = async () => {
@@ -43,8 +47,16 @@ export function GameCanvas({ onGather }: Props) {
       });
 
       // Listen for gather events from Phaser
-      gameRef.current.events.on("gathered", ({ type, amount }: { type: ResourceType; amount: number }) => {
-        onGatherRef.current(type, amount);
+      gameRef.current.events.on(
+        "gathered",
+        ({ type, amount }: { type: ResourceType; amount: number }) => {
+          onGatherRef.current(type, amount);
+        }
+      );
+
+      // Listen for other game events
+      gameRef.current.events.on("openCrafting", () => {
+        onGameEventRef.current("openCrafting");
       });
     };
 

@@ -15,6 +15,9 @@ export function createGameScene(Phaser: any) {
     private nearbyNodeIndex: number = -1;
     private promptText!: Phaser.GameObjects.Text;
     private nodes: any[] = [];
+    private workbenchCol: number = 25;
+    private workbenchRow: number = 23;
+    private nearWorkbench: boolean = false;
 
     constructor() {
       super({ key: "GameScene" });
@@ -183,6 +186,30 @@ export function createGameScene(Phaser: any) {
         .setDepth(200)
         .setScrollFactor(0)
         .setVisible(false);
+
+      // Workbench marker at center of homestead
+      const workbench = this.add
+        .rectangle(
+          25 * TILE_SIZE + TILE_SIZE / 2,
+          23 * TILE_SIZE + TILE_SIZE / 2,
+          TILE_SIZE,
+          TILE_SIZE,
+          0xc8a96e,
+          0.9,
+        )
+        .setDepth(5);
+
+      // Label
+      this.add
+        .text(25 * TILE_SIZE + TILE_SIZE / 2, 23 * TILE_SIZE - 4, "⚒️", {
+          fontSize: "16px",
+        })
+        .setOrigin(0.5, 1)
+        .setDepth(6);
+
+      // Store workbench position for proximity check
+      this.workbenchCol = 25;
+      this.workbenchRow = 23;
     }
 
     private setupInteraction(Phaser: any) {
@@ -252,12 +279,44 @@ export function createGameScene(Phaser: any) {
       this.game.events.emit("gathered", { type: node.type, amount: 1 });
     }
 
+    private checkWorkbenchProximity() {
+      const playerX = this.player.x;
+      const playerY = this.player.y;
+      const workbenchX = this.workbenchCol * TILE_SIZE + TILE_SIZE / 2;
+      const workbenchY = this.workbenchRow * TILE_SIZE + TILE_SIZE / 2;
+      const dist = Phaser.Math.Distance.Between(
+        playerX,
+        playerY,
+        workbenchX,
+        workbenchY,
+      );
+
+      this.nearWorkbench = dist < TILE_SIZE * 1.5;
+
+      if (this.nearWorkbench && this.nearbyNodeIndex < 0) {
+        this.promptText.setVisible(true);
+        this.promptText.setText("Press E to craft");
+        this.promptText.setPosition(
+          this.scale.width / 2 - this.promptText.width / 2,
+          this.scale.height - 80,
+        );
+      }
+
+      if (
+        this.nearWorkbench &&
+        Phaser.Input.Keyboard.JustDown(this.interactKey)
+      ) {
+        this.game.events.emit("openCrafting");
+      }
+    }
+
     // --- MAIN LOOP ---
 
     update() {
       this.handleMovement();
       this.updateDayNight();
       this.checkNodeProximity();
+      this.checkWorkbenchProximity();
       this.handleGathering();
     }
   };

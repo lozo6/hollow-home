@@ -9,7 +9,7 @@ export interface InventoryItem {
   name: string;
   quantity: number;
   icon: string; // emoji placeholder until we have sprites
-  category: "material" | "seed" | "food" | "artefact" | "tool";
+  category: "material" | "seed" | "food" | "artefact" | "tool" | "structure";
 }
 
 interface Props {
